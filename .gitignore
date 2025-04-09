@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+
+# Flask instance folder
+instance/
+*.db
+*.sqlite3
+
+# Flask environment files
+*.env
+.env.*
+
+# Pytest
+.pytest_cache/
+.cache
+
+# VSCode
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Logs
+*.log
+
+# Coverage reports
+htmlcov/
+.coverage
+coverage.xml
+
+# Migrations (caso use Flask-Migrate)
+migrations/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Compiled HTML/JS if you're using frontend build tools
+dist/
+build/
+node_modules/
