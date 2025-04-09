@@ -46,8 +46,7 @@ def cadastrar_associado():
             data.get("estado"),
             data.get("data_associacao"),
             data["status_contribuicao"]
-        )
-        )
+        ))
         con.commit()
         return jsonify({"mensagem": "Associado cadastrado com sucesso!"}), 201
     except Exception as e:
