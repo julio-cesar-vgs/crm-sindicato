@@ -73,9 +73,6 @@ tests/__pycache__/
 # Arquivos de migração do Flask
 migrations/
 
-# Arquivos de requirements
-requirements.txt
-
 # Outros arquivos
 *.tmp
 *.bak

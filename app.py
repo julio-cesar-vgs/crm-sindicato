@@ -9,7 +9,7 @@ from routes.interacoes import interacoes_bp
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "http://localhost:3001"}})
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///sindicato_crm.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
