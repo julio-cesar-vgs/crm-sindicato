@@ -50,3 +50,11 @@ def delete_evento(id):
     db.session.delete(e)
     db.session.commit()
     return jsonify({'message': 'Evento removido.'})
+
+@eventos_bp.route('/count', methods=['GET'])
+def count_eventos():
+    try:
+        count = Evento.query.count()
+        return jsonify({"count": count}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

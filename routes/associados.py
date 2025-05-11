@@ -13,6 +13,15 @@ def get_associado(id):
     a = Associado.query.get_or_404(id)
     return jsonify(a.to_dict())
 
+@associados_bp.route('/count', methods=['GET'])
+def count_associados():
+    try:
+        count = Associado.query.count()
+        return jsonify({"count": count}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @associados_bp.route('', methods=['POST'])
 def create_associado():
     data = request.get_json()

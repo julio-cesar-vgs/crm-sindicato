@@ -50,3 +50,11 @@ def delete_contrib(id):
     db.session.delete(c)
     db.session.commit()
     return jsonify({'message': 'Contribuição removida.'})
+
+@contribuicoes_bp.route('/count', methods=['GET'])
+def count_contribuicoes():
+    try:
+        count = Contribuicao.query.count()
+        return jsonify({"count": count}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

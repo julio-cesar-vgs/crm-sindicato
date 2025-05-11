@@ -21,3 +21,11 @@ def create_participacao():
     db.session.add(p)
     db.session.commit()
     return jsonify({'id_participacao': p.id_participacao}), 201
+
+@participacoes_bp.route('/count', methods=['GET'])
+def count_participacoes():
+    try:
+        count = Participacao.query.count()
+        return jsonify({"count": count}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500

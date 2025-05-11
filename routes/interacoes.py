@@ -23,3 +23,11 @@ def create_interacao():
     db.session.add(i)
     db.session.commit()
     return jsonify({'id_interacao': i.id_interacao}), 201
+
+@interacoes_bp.route('/count', methods=['GET'])
+def count_interacoes():
+    try:
+        count = Interacao.query.count()
+        return jsonify({"count": count}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
