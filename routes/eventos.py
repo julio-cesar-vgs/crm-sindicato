@@ -1,60 +1,93 @@
-from flask import Blueprint, request, jsonify, abort
-from models import db, Evento
-from utils import parse_date
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
 
-eventos_bp = Blueprint('eventos', __name__)
+from models.eventos import Evento # Importe seu modelo Evento
+from schemas.eventos import EventoCreate, EventoUpdate, EventoResponse # Importe os schemas Pydantic que você acabou de criar
+from database import get_db # Importe a função get_db
+# Se você usava parse_date aqui e ainda precisa dele, importe-o:
+# from utils import parse_date
 
-@eventos_bp.route('', methods=['GET'])
-def list_eventos():
-    return jsonify([e.to_dict() for e in Evento.query.all()])
+router = APIRouter()
 
-@eventos_bp.route('/<int:id>', methods=['GET'])
-def get_evento(id):
-    e = Evento.query.get_or_404(id)
-    return jsonify(e.to_dict())
+@router.get(
+    "/",
+    response_model=List[EventoResponse],
+    summary="Lista todos os eventos",
+    description="Retorna uma lista de todos os eventos registrados."
+)
+def list_eventos(db: Session = Depends(get_db)):
+    eventos = db.query(Evento).all()
+    return eventos
 
-@eventos_bp.route('', methods=['POST'])
-def create_evento():
-    data = request.get_json()
-    try:
-        e = Evento(
-            nome_evento=data['nome_evento'],
-           	data_evento=parse_date(data.get('data_evento')),
-            local_evento=data.get('local_evento'),
-            descricao=data.get('descricao')
-        )
-    except KeyError as e:
-        abort(400, description=f'Atributo obrigatório faltando: {e.args[0]}')
-    db.session.add(e)
-    db.session.commit()
-    return jsonify({'id_evento': e.id_evento}), 201
+@router.get(
+    "/{id}",
+    response_model=EventoResponse,
+    summary="Obtém um evento por ID",
+    description="Retorna os detalhes de um evento específico pelo seu ID."
+)
+def get_evento(id: int, db: Session = Depends(get_db)):
+    evento = db.query(Evento).filter(Evento.id_evento == id).first()
+    if evento is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evento não encontrado")
+    return evento
 
-@eventos_bp.route('/<int:id>', methods=['PUT'])
-def	update_evento(id):
-    e = Evento.query.get_or_404(id)
-    data = request.get_json()
-    if 'nome_evento' in data:
-        e.nome_evento = data['nome_evento']
-    if 'data_evento' in data:
-        e.data_evento = parse_date(data.get('data_evento'))
-    if 'local_evento' in data:
-        e.local_evento = data['local_evento']
-    if 'descricao' in data:
-        e.descricao = data['descricao']
-    db.session.commit()
-    return jsonify({'message': 'Evento atualizado.'})
+@router.post(
+    "/",
+    response_model=EventoResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Cria um novo evento",
+    description="Cria uma nova entrada de evento no sistema."
+)
+def create_evento(evento: EventoCreate, db: Session = Depends(get_db)):
+    # Adapte a criação para usar o schema Pydantic
+    # Se 'data_evento' precisa de parse_date, use: data_evento=parse_date(evento.data_evento)
+    db_evento = Evento(**evento.dict())
+    db.add(db_evento)
+    db.commit()
+    db.refresh(db_evento)
+    return db_evento
 
-@eventos_bp.route('/<int:id>', methods=['DELETE'])
-def delete_evento(id):
-    e = Evento.query.get_or_404(id)
-    db.session.delete(e)
-    db.session.commit()
-    return jsonify({'message': 'Evento removido.'})
+@router.put(
+    "/{id}",
+    response_model=EventoResponse,
+    summary="Atualiza um evento por ID",
+    description="Atualiza os detalhes de um evento específico pelo seu ID."
+)
+def update_evento(id: int, evento_update: EventoUpdate, db: Session = Depends(get_db)):
+    db_evento = db.query(Evento).filter(Evento.id_evento == id).first()
+    if db_evento is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evento não encontrado")
 
-@eventos_bp.route('/count', methods=['GET'])
-def count_eventos():
-    try:
-        count = Evento.query.count()
-        return jsonify({"count": count}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    # Adapte a atualização para usar o schema Pydantic e atualizar apenas os campos fornecidos
+    update_data = evento_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_evento, field, value)
+
+    db.commit()
+    db.refresh(db_evento)
+    return db_evento
+
+@router.delete(
+    "/{id}",
+    status_code=status.HTTP_200_OK,
+    summary="Deleta um evento por ID",
+    description="Remove um evento específico pelo seu ID."
+)
+def delete_evento(id: int, db: Session = Depends(get_db)):
+    db_evento = db.query(Evento).filter(Evento.id_evento == id).first()
+    if db_evento is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Evento não encontrado")
+
+    db.delete(db_evento)
+    db.commit()
+    return {"detail": "Evento removido com sucesso"} # Retorno HTTP 200 com mensagem
+
+# Se você tinha uma rota de contagem para eventos, adicione-a aqui:
+# @router.get("/count", summary="Conta o número total de eventos")
+# def count_eventos(db: Session = Depends(get_db)):
+#     try:
+#         count = db.query(Evento).count()
+#         return {"count": count}
+#     except Exception as e:
+#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

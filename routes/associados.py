@@ -1,62 +1,67 @@
-from flask import Blueprint, request, jsonify, abort
-from models import db, Associado
-from utils import parse_date
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
 
-associados_bp = Blueprint('associados', __name__)
+from models.associados import Associado
+from schemas.associados import AssociadoCreate, AssociadoUpdate, AssociadoResponse
+from database import get_db
+# from utils import parse_date # Se parse_date for necessário, importe aqui
 
-@associados_bp.route('', methods=['GET'])
-def list_associados():
-    return jsonify([a.to_dict() for a in Associado.query.all()])
+router = APIRouter()
 
-@associados_bp.route('/<int:id>', methods=['GET'])
-def get_associado(id):
-    a = Associado.query.get_or_404(id)
-    return jsonify(a.to_dict())
+@router.get("/", response_model=List[AssociadoResponse], summary="Lista todos os associados")
+def list_associados(db: Session = Depends(get_db)):
+    associados = db.query(Associado).all()
+    return associados
 
-@associados_bp.route('/count', methods=['GET'])
-def count_associados():
+@router.get("/{associado_id}", response_model=AssociadoResponse, summary="Obtém um associado por ID")
+def get_associado(associado_id: int, db: Session = Depends(get_db)):
+    associado = db.query(Associado).filter(Associado.id_associado == associado_id).first()
+    if associado is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associado não encontrado")
+    return associado
+
+@router.get("/count", summary="Conta o número total de associados")
+def count_associados(db: Session = Depends(get_db)):
     try:
-        count = Associado.query.count()
-        return jsonify({"count": count}), 200
+        count = db.query(Associado).count()
+        return {"count": count}
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-
-@associados_bp.route('', methods=['POST'])
-def create_associado():
-    data = request.get_json()
-    try:
-        assoc = Associado(
-            razao_social=data['razao_social'],
-            cnpj=data['cnpj'],
-            contato=data.get('contato'),
-            ramo_atuacao=data.get('ramo_atuacao'),
-            cidade=data.get('cidade'),
-            estado=data.get('estado'),
-            data_associacao=parse_date(data.get('data_associacao')),
-            status_contribuicao=data.get('status_contribuicao')
-        )
-    except KeyError as e:
-        abort(400, description=f'Atributo obrigatório faltando: {e.args[0]}')
-    db.session.add(assoc)
+@router.post("/", response_model=AssociadoResponse, status_code=status.HTTP_201_CREATED, summary="Cria um novo associado")
+def create_associado(associado: AssociadoCreate, db: Session = Depends(get_db)):
+    # Verificar se CNPJ já existe (opcional, mas recomendado)
+    db_associado = db.query(Associado).filter(Associado.cnpj == associado.cnpj).first()
+    if db_associado:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="CNPJ já cadastrado")
+    
+    db_associado = Associado(**associado.dict())
+    db.add(db_associado)
     db.session.commit()
-    return jsonify({'id_associado': assoc.id_associado}), 201
+    db.session.refresh(db_associado)
+    return db_associado
 
-@associados_bp.route('/<int:id>', methods=['PUT'])
-def update_associado(id):
-    a = Associado.query.get_or_404(id)
-    data = request.get_json()
-    for field in ['razao_social', 'cnpj', 'contato', 'ramo_atuacao', 'cidade', 'estado', 'status_contribuicao']:
-        if field in data:
-            setattr(a, field, data[field])
-    if 'data_associacao' in data:
-        a.data_associacao = parse_date(data.get('data_associacao'))
-    db.session.commit()
-    return jsonify({'message': 'Associado atualizado com sucesso.'})
+@router.put("/{associado_id}", response_model=AssociadoResponse, summary="Atualiza um associado por ID")
+def update_associado(associado_id: int, associado_update: AssociadoUpdate, db: Session = Depends(get_db)):
+    db_associado = db.query(Associado).filter(Associado.id_associado == associado_id).first()
+    if db_associado is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associado não encontrado")
+    
+    update_data = associado_update.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(db_associado, field, value)
 
-@associados_bp.route('/<int:id>', methods=['DELETE'])
-def delete_associado(id):
-    a = Associado.query.get_or_404(id)
-    db.session.delete(a)
     db.session.commit()
-    return jsonify({'message': 'Associado removido.'})
+    db.session.refresh(db_associado)
+    return db_associado
+
+@router.delete("/{associado_id}", status_code=status.HTTP_200_OK, summary="Deleta um associado por ID")
+def delete_associado(associado_id: int, db: Session = Depends(get_db)):
+    db_associado = db.query(Associado).filter(Associado.id_associado == associado_id).first()
+    if db_associado is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Associado não encontrado")
+    
+    db.delete(db_associado)
+    db.session.commit()
+    return {"detail": "Associado removido com sucesso"}
