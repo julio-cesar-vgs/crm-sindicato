@@ -83,11 +83,10 @@ def delete_evento(id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"detail": "Evento removido com sucesso"} # Retorno HTTP 200 com mensagem
 
-# Se você tinha uma rota de contagem para eventos, adicione-a aqui:
-# @router.get("/count", summary="Conta o número total de eventos")
-# def count_eventos(db: Session = Depends(get_db)):
-#     try:
-#         count = db.query(Evento).count()
-#         return {"count": count}
-#     except Exception as e:
-#         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+@router.get("/count", summary="Conta o número total de eventos", description="Retorna o número total de eventos registrados no sistema.")
+def count_eventos(db: Session = Depends(get_db)):
+    try:
+        count = db.query(Evento).count()
+        return {"count": count}
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
