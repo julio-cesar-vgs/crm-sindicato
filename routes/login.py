@@ -3,24 +3,15 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List
 
-from .. import models, schemas
-from ..database import SessionLocal
+from models.login import Login # Importe o modelo Login diretamente
+from schemas.login import LoginCreate, LoginUpdatePassword, Login as LoginSchema # Importe os schemas LoginCreate, LoginUpdatePassword, e renomeie o schema Login para evitar conflito com o modelo
+from database import get_db # Importe a função get_db
 
 router = APIRouter()
 
-# Dependency to get the database session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-@router.post("/", response_model=schemas.Login)
-def create_login(user: schemas.LoginCreate, db: Session = Depends(get_db)):
-    db_user = models.Login(nome=user.nome, password=user.password) # createAt defaults in model
-    db.add(db_user)
-    db.commit()
+@router.post("/", response_model=LoginSchema) # Use o schema renomeado para resposta
+def create_login(user: LoginCreate, db: Session = Depends(get_db)): # Use os schemas importados diretamente
+    db_user = Login(nome=user.nome, password=user.password) # createAt defaults in model # Use o modelo Login importado diretamente
     db.refresh(db_user)
     return db_user
 
@@ -31,27 +22,25 @@ def read_logins(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 @router.get("/{user_id}", response_model=schemas.Login)
 def read_login(user_id: int, db: Session = Depends(get_db)):
-    user = db.query(models.Login).filter(models.Login.id == user_id).first()
+    user = db.query(Login).filter(Login.id == user_id).first() # Use o modelo Login importado diretamente
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
-@router.put("/{user_id}", response_model=schemas.Login)
-def update_login_password(user_id: int, user_update: schemas.LoginUpdatePassword, db: Session = Depends(get_db)):
-    db_user = db.query(models.Login).filter(models.Login.id == user_id).first()
+@router.put(\"/{user_id}\", response_model=LoginSchema) # Use o schema renomeado para resposta
+def update_login_password(user_id: int, user_update: LoginUpdatePassword, db: Session = Depends(get_db)): # Use os schemas importados diretamente
+    db_user = db.query(Login).filter(Login.id == user_id).first() # Use o modelo Login importado diretamente
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
     db_user.password = user_update.password
     db_user.updateAt = datetime.now()
 
-    db.commit()
-    db.refresh(db_user)
     return db_user
 
-@router.delete("/{user_id}", response_model=schemas.Login)
+@router.delete(\"/{user_id}\", response_model=LoginSchema) # Use o schema renomeado para resposta
 def delete_login(user_id: int, db: Session = Depends(get_db)):
-    db_user = db.query(models.Login).filter(models.Login.id == user_id).first()
+    db_user = db.query(Login).filter(Login.id == user_id).first() # Use o modelo Login importado diretamente
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
 

@@ -1,16 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime
+# from datetime import datetime # Remova se não precisar mais importar aqui
 
 from models.interacoes import Interacao  # Importe seu modelo Interacao
 from schemas.interacoes import InteracaoCreate, InteracaoUpdate, InteracaoResponse  # Importe seus schemas Pydantic
 from database import get_db  # Importe a função get_db
-# Se você usava parse_date aqui e ainda precisa dele, importe-o:
-# from utils import parse_date
 
 router = APIRouter()
-
 @router.get(
     "/",
     response_model=List[InteracaoResponse],
@@ -84,10 +81,15 @@ def delete_interacao(id: int, db: Session = Depends(get_db)):
     db.commit()
     return {"detail": "Interação removida com sucesso"} # Retorno HTTP 200 com mensagem
 
-@interacoes_bp.route('/count', methods=['GET'])
-def count_interacoes():
+@router.get(
+    "/count",
+    summary="Conta o número total de interações",
+    description="Retorna o número total de interações registradas."
+)
+def count_interacoes(db: Session = Depends(get_db)):
     try:
         count = Interacao.query.count()
-        return jsonify({"count": count}), 200
+        return {"count": count}
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # Use HTTPException para erros no FastAPI
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))

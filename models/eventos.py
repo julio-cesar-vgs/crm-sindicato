@@ -1,20 +1,13 @@
-from . import db
+from sqlalchemy import Column, Integer, String, Date
+from sqlalchemy.orm import relationship
+from database import Base
 
-class Evento(db.Model):
+class Evento(Base):
     __tablename__ = 'eventos'
-    id_evento = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    nome_evento = db.Column(db.String, nullable=False)
-    data_evento = db.Column(db.Date, nullable=False)
-    local_evento = db.Column(db.String)
-    descricao = db.Column(db.String)
+    id_evento = Column(Integer, primary_key=True, autoincrement=True)
+    nome_evento = Column(String, nullable=False)
+    data_evento = Column(Date, nullable=False)
+    local_evento = Column(String)
+    descricao = Column(String)
 
-    participacoes = db.relationship('Participacao', backref='evento', lazy=True)
-
-    def to_dict(self):
-        return {
-            'id_evento': self.id_evento,
-            'nome_evento': self.nome_evento,
-            'data_evento': self.data_evento.isoformat() if self.data_evento else None,
-            'local_evento': self.local_evento,
-            'descricao': self.descricao
-        }
+    participacoes = relationship('Participacao', backref='evento', lazy=True)
