@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify, abort
 from models import db, Associado
 from utils import parse_date
-
 associados_bp = Blueprint('associados', __name__)
 
 @associados_bp.route('', methods=['GET'])
